@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dr. Ava - AI Medical Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+      }
+      @keyframes glow {
+        0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+        50% { box-shadow: 0 0 30px rgba(99, 102, 241, 0.6); }
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+      }
+      .floating { animation: float 3s ease-in-out infinite; }
+      .glowing { animation: glow 2s ease-in-out infinite; }
+      .pulse-animation { animation: pulse 2s ease-in-out infinite; }
+      
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(148, 163, 184, 0.1);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: linear-gradient(45deg, #6366f1, #8b5cf6);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(45deg, #4f46e5, #7c3aed);
+      }
+      
+      /* Message animations */
+      .message-enter {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: messageSlideIn 0.5s ease-out forwards;
+      }
+      @keyframes messageSlideIn {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-slate-800 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 dark:text-slate-100 min-h-screen">
+    <div class="min-h-screen flex">
+      <!-- Sidebar -->
+      <aside class="hidden md:flex w-64 border-r border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl flex-col shadow-xl">
+        <div class="px-4 py-3 border-b border-slate-200/60 dark:border-slate-700/60">
+          <div class="flex items-center gap-3">
+            <div class="h-8 w-8 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-500 dark:to-purple-500 shadow-lg shadow-indigo-600/30 flex items-center justify-center">
+              <span class="text-white text-sm font-bold">👩‍⚕️</span>
+            </div>
+            <span class="font-semibold">Dr. Ava</span>
+          </div>
+        </div>
+        <div class="px-3 py-3">
+          <button id="newChat" class="w-full text-left text-sm px-4 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            <span class="flex items-center gap-2">
+              <span class="text-lg">💬</span>
+              New chat
+            </span>
+          </button>
+        </div>
+        <div class="px-3 pb-4 overflow-y-auto flex-1">
+          <div class="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">History</div>
+          <div id="history" class="space-y-1"></div>
+        </div>
+        <div class="p-3 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200/60 dark:border-slate-700/60">Powered by Hugging Face + FAISS</div>
+      </aside>
+
+      <!-- Main Column -->
+      <div class="flex-1 flex flex-col">
+        <header class="sticky top-0 z-10 border-b border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-lg">
+          <div class="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
+            <form id="askForm" class="flex-1 flex gap-3">
+              <div class="relative flex-1">
+                <input id="question" type="text" placeholder="Ask Dr. Ava a medical question..." class="w-full rounded-2xl border-2 border-slate-300/50 dark:border-slate-700/50 bg-white/90 dark:bg-gray-900/90 px-6 py-4 pr-12 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-300 shadow-lg" />
+                <div class="absolute right-4 top-1/2 transform -translate-y-1/2">
+                  <span class="text-slate-400 text-xl">🔍</span>
+                </div>
+              </div>
+              <button id="askBtn" class="rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 font-semibold">
+                <span class="flex items-center gap-2">
+                  <span>Ask Dr. Ava</span>
+                  <span class="text-lg">💭</span>
+                </span>
+              </button>
+            </form>
+            <button id="toggleTheme" class="rounded-full border-2 border-slate-300/50 dark:border-slate-600/50 px-4 py-3 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-300 shadow-lg hover:shadow-xl">
+              <span class="text-lg">🌙</span>
+            </button>
+          </div>
+        </header>
+
+        <main class="flex-1">
+          <div class="max-w-6xl mx-auto px-4 py-6 grid lg:grid-cols-3 gap-6">
+            <!-- 3D Avatar Section -->
+            <section class="lg:col-span-1">
+              <div class="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl shadow-2xl p-6 h-full">
+                <div class="text-center mb-6">
+                  <div class="inline-flex items-center gap-3 mb-3">
+                    <div class="h-12 w-12 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg shadow-indigo-600/30 flex items-center justify-center">
+                      <span class="text-white text-xl">👩‍⚕️</span>
+                    </div>
+                    <div>
+                      <h3 class="text-xl font-bold text-slate-700 dark:text-slate-200">Dr. Ava</h3>
+                      <p class="text-sm text-slate-500 dark:text-slate-400">AI Medical Assistant</p>
+                    </div>
+                  </div>
+                </div>
+                <div id="avatar-container" class="relative h-72 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-800 dark:via-blue-900 dark:to-purple-900 rounded-2xl overflow-hidden shadow-inner border border-slate-200/30 dark:border-slate-700/30">
+                  <div id="avatar-status" class="absolute top-3 left-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs px-3 py-1.5 rounded-full shadow-lg font-medium">
+                    <span class="flex items-center gap-1">
+                      <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                      Ready to help
+                    </span>
+                  </div>
+                  <div id="avatar-canvas" class="w-full h-full floating"></div>
+                  <div class="absolute bottom-3 right-3 bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded-full p-2">
+                    <span class="text-2xl">🏥</span>
+                  </div>
+                </div>
+                <div class="mt-6 flex gap-3">
+                  <button id="speakBtn" class="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-3 rounded-xl text-sm hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 font-medium" disabled>
+                    <span class="flex items-center justify-center gap-2">
+                      <span class="text-lg">🔊</span>
+                      Speak
+                    </span>
+                  </button>
+                  <button id="muteBtn" class="bg-gradient-to-r from-slate-200 to-slate-300 dark:from-gray-700 dark:to-gray-600 text-slate-700 dark:text-gray-300 px-4 py-3 rounded-xl text-sm hover:from-slate-300 hover:to-slate-400 dark:hover:from-gray-600 dark:hover:to-gray-500 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <span class="text-lg">🔇</span>
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <!-- Chat Section -->
+            <section class="lg:col-span-2">
+              <div id="messages" class="space-y-4"></div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <template id="msgUser">
+      <div class="flex justify-end mb-4">
+        <div class="max-w-[85%] rounded-2xl rounded-br-sm px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl">
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-1">
+              <span class="text-sm">👤</span>
+            </div>
+            <div class="flex-1">__TEXT__</div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template id="msgAssistant">
+      <div class="flex justify-start mb-4">
+        <div class="max-w-[85%] rounded-2xl rounded-bl-sm px-6 py-4 bg-white/90 dark:bg-gray-900/90 border border-slate-200/60 dark:border-slate-800/60 shadow-xl backdrop-blur-sm">
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center flex-shrink-0 mt-1 shadow-lg">
+              <span class="text-white text-sm">👩‍⚕️</span>
+            </div>
+            <div class="flex-1">
+              <div class="text-slate-700 dark:text-slate-200 leading-relaxed">__TEXT__</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <script>
+      // 3D Avatar Setup
+      let scene, camera, renderer, avatar, mixer, clock;
+      let isSpeaking = false;
+      let isMuted = false;
+      let currentAudio = null;
+
+      // Avatar elements
+      const avatarContainer = document.getElementById('avatar-container');
+      const avatarCanvas = document.getElementById('avatar-canvas');
+      const avatarStatus = document.getElementById('avatar-status');
+      const speakBtn = document.getElementById('speakBtn');
+      const muteBtn = document.getElementById('muteBtn');
+
+      // Chat elements
+      const messagesEl = document.getElementById('messages');
+      const form = document.getElementById('askForm');
+      const input = document.getElementById('question');
+      const askBtn = document.getElementById('askBtn');
+      const toggleTheme = document.getElementById('toggleTheme');
+      const historyEl = document.getElementById('history');
+      const newChatBtn = document.getElementById('newChat');
+
+      // Initialize 3D Avatar
+      function initAvatar() {
+        // Scene setup
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, avatarCanvas.clientWidth / avatarCanvas.clientHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(avatarCanvas.clientWidth, avatarCanvas.clientHeight);
+        renderer.setClearColor(0x000000, 0);
+        avatarCanvas.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 10, 5);
+        scene.add(directionalLight);
+
+        // Create enhanced avatar with better materials
+        const avatarGeometry = new THREE.SphereGeometry(1, 64, 64);
+        const avatarMaterial = new THREE.MeshPhongMaterial({ 
+          color: 0xffdbac,
+          transparent: true,
+          opacity: 0.95,
+          shininess: 30,
+          specular: 0x222222
+        });
+        avatar = new THREE.Mesh(avatarGeometry, avatarMaterial);
+        scene.add(avatar);
+
+        // Add simple face
+        const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+        
+        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        leftEye.position.set(-0.3, 0.2, 0.8);
+        avatar.add(leftEye);
+        
+        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        rightEye.position.set(0.3, 0.2, 0.8);
+        avatar.add(rightEye);
+
+        // Add mouth
+        const mouthGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+        const mouthMaterial = new THREE.MeshLambertMaterial({ color: 0x8b0000 });
+        const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+        mouth.position.set(0, -0.3, 0.8);
+        mouth.scale.set(1, 0.5, 0.5);
+        avatar.add(mouth);
+
+        // Add enhanced medical accessories
+        const stethoscopeGeometry = new THREE.TorusGeometry(0.4, 0.06, 12, 24);
+        const stethoscopeMaterial = new THREE.MeshPhongMaterial({ 
+          color: 0x2c3e50,
+          shininess: 100,
+          specular: 0x444444
+        });
+        const stethoscope = new THREE.Mesh(stethoscopeGeometry, stethoscopeMaterial);
+        stethoscope.position.set(0, -0.1, 0.5);
+        stethoscope.rotation.x = Math.PI / 2;
+        avatar.add(stethoscope);
+
+        // Add hair
+        const hairGeometry = new THREE.SphereGeometry(1.1, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        const hairMaterial = new THREE.MeshPhongMaterial({ 
+          color: 0x8B4513,
+          transparent: true,
+          opacity: 0.9
+        });
+        const hair = new THREE.Mesh(hairGeometry, hairMaterial);
+        hair.position.set(0, 0.3, 0);
+        scene.add(hair);
+
+        // Position camera
+        camera.position.z = 3;
+        camera.position.y = 0.5;
+
+        // Add subtle rotation animation
+        clock = new THREE.Clock();
+        
+        // Handle window resize
+        window.addEventListener('resize', onWindowResize);
+      }
+
+      function animateAvatar() {
+        requestAnimationFrame(animateAvatar);
+        
+        const elapsedTime = clock.getElapsedTime();
+        
+        // Gentle breathing animation
+        if (avatar) {
+          avatar.scale.y = 1 + Math.sin(elapsedTime * 2) * 0.02;
+          
+          // Gentle rotation
+          avatar.rotation.y = Math.sin(elapsedTime * 0.5) * 0.1;
+          
+          // Speaking animation
+          if (isSpeaking) {
+            avatar.rotation.x = Math.sin(elapsedTime * 10) * 0.05;
+            avatar.position.y = Math.sin(elapsedTime * 8) * 0.02;
+          }
+        }
+        
+        renderer.render(scene, camera);
+      }
+
+      function onWindowResize() {
+        if (camera && renderer) {
+          camera.aspect = avatarCanvas.clientWidth / avatarCanvas.clientHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(avatarCanvas.clientWidth, avatarCanvas.clientHeight);
+        }
+      }
+
+      function setAvatarStatus(text, color = 'green') {
+        avatarStatus.textContent = text;
+        avatarStatus.className = `absolute top-2 left-2 bg-${color}-500 text-white text-xs px-2 py-1 rounded-full`;
+      }
+
+      async function speakText(text) {
+        if (isMuted || !text) return;
+        
+        try {
+          setAvatarStatus('Speaking...', 'blue');
+          isSpeaking = true;
+          
+          const response = await fetch('/api/speak', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text.substring(0, 500) }) // Limit text length
+          });
+          
+          if (response.ok) {
+            const audioBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            currentAudio = new Audio(audioUrl);
+            
+            currentAudio.onended = () => {
+              isSpeaking = false;
+              setAvatarStatus('Ready to help', 'green');
+              URL.revokeObjectURL(audioUrl);
+            };
+            
+            currentAudio.onerror = () => {
+              isSpeaking = false;
+              setAvatarStatus('Audio error', 'red');
+              URL.revokeObjectURL(audioUrl);
+            };
+            
+            await currentAudio.play();
+          } else {
+            throw new Error('TTS request failed');
+          }
+        } catch (error) {
+          console.error('TTS Error:', error);
+          isSpeaking = false;
+          setAvatarStatus('TTS unavailable', 'yellow');
+        }
+      }
+
+      // Event listeners for avatar controls
+      speakBtn.addEventListener('click', () => {
+        const lastAssistantMessage = document.querySelector('#messages .flex.justify-start:last-child .bg-white\\/80, #messages .flex.justify-start:last-child .bg-gray-900\\/80');
+        if (lastAssistantMessage) {
+          const text = lastAssistantMessage.textContent.trim();
+          speakText(text);
+        }
+      });
+
+      muteBtn.addEventListener('click', () => {
+        isMuted = !isMuted;
+        if (isMuted) {
+          muteBtn.textContent = '🔊 Unmute';
+          muteBtn.className = 'bg-indigo-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-indigo-700';
+          if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+          }
+        } else {
+          muteBtn.textContent = '🔇 Mute';
+          muteBtn.className = 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-600';
+        }
+      });
+
+      // Theme persistence
+      const THEME_KEY = 'chat-theme-dark';
+      const applyTheme = () => {
+        const isDark = localStorage.getItem(THEME_KEY) === '1';
+        document.documentElement.classList.toggle('dark', isDark);
+      };
+      applyTheme();
+      toggleTheme.addEventListener('click', () => {
+        const isDark = localStorage.getItem(THEME_KEY) === '1';
+        localStorage.setItem(THEME_KEY, isDark ? '0' : '1');
+        applyTheme();
+      });
+
+      // History persistence
+      const HISTORY_KEY = 'chat-history-v1';
+      function loadHistory(){
+        try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+      }
+      function saveHistory(items){
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0,50)));
+      }
+      function renderHistory(){
+        const items = loadHistory();
+        historyEl.innerHTML = '';
+        for(const it of items){
+          const btn = document.createElement('button');
+          btn.className = 'w-full text-left text-sm px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200';
+          btn.textContent = it.q;
+          btn.title = it.q;
+          btn.addEventListener('click', async ()=>{
+            addMessage('user', it.q);
+            await ask(it.q);
+          });
+          historyEl.appendChild(btn);
+        }
+      }
+      newChatBtn.addEventListener('click', ()=>{
+        messagesEl.innerHTML='';
+      });
+
+      function createBubble(templateId, text) {
+        const tpl = document.getElementById(templateId);
+        const node = tpl.content.firstElementChild.cloneNode(true);
+        node.innerHTML = node.innerHTML.replace('__TEXT__', escapeHtml(text));
+        return node;
+      }
+      function escapeHtml(str) {
+        return str.replace(/[&<>\"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
+      }
+      function addMessage(role, text){
+        const node = role === 'user' ? createBubble('msgUser', text) : createBubble('msgAssistant', text);
+        
+        // Add animation class
+        node.classList.add('message-enter');
+        
+        messagesEl.appendChild(node);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+
+      async function ask(question){
+        askBtn.disabled = true; 
+        askBtn.innerHTML = `
+          <span class="flex items-center gap-2">
+            <span class="pulse-animation">💭</span>
+            Thinking...
+          </span>
+        `;
+        setAvatarStatus('Thinking...', 'yellow');
+        
+        try{
+          const res = await fetch('/api/ask', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({question}) });
+          if(!res.ok) throw new Error('Request failed');
+          const data = await res.json();
+          addMessage('assistant', data.answer || '(no answer)');
+          
+          // Enable speak button for the new response
+          speakBtn.disabled = false;
+          
+          // Auto-speak the response if not muted
+          if (!isMuted && data.answer) {
+            setTimeout(() => speakText(data.answer), 500);
+          }
+          
+          const items = loadHistory();
+          items.unshift({ q: question, t: Date.now() });
+          saveHistory(items);
+          renderHistory();
+        }catch(err){
+          addMessage('assistant', 'Error: '+err.message);
+          setAvatarStatus('Error occurred', 'red');
+        }finally{
+          askBtn.disabled = false; 
+          askBtn.innerHTML = `
+            <span class="flex items-center gap-2">
+              <span>Ask Dr. Ava</span>
+              <span class="text-lg">💭</span>
+            </span>
+          `;
+        }
+      }
+
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const q = input.value.trim();
+        if(!q) return;
+        addMessage('user', q);
+        input.value='';
+        await ask(q);
+      });
+
+      // Init
+      renderHistory();
+      initAvatar();
+      animateAvatar();
+      addMessage('assistant', 'Hello! I\'m Dr. Ava, your AI medical assistant. I\'m here to help you understand medical information from our medical encyclopedia. Please remember that I am an AI assistant and cannot replace professional medical advice. How can I help you today?');
+    </script>
+  </body>
+</html>
+
+
