@@ -22,7 +22,7 @@ Dr. Ava is an advanced medical chatbot featuring a 3D AI avatar that provides em
 - **Safety First**: Always reminds users to consult healthcare professionals
 - **Contextual Awareness**: Uses medical encyclopedia knowledge effectively
 
-## 🚀 Quick Start
+## 🚀 Quick Start 
 
 ### 1. Install Dependencies
 ```bash
