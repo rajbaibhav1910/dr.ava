@@ -25,7 +25,7 @@ Dr. Ava is an advanced medical chatbot featuring a 3D AI avatar that provides em
 ## 🚀 Quick Start 
 
 ### 1. Install Dependencies
-```bash
+
 # Run the installation script
 python install_requirements.py
 
