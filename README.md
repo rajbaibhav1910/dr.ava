@@ -1,5 +1,6 @@
 # 🏥 Dr. Ava - AI Medical Assistant with 3D Avatar
 
+
 Dr. Ava is an advanced medical chatbot featuring a 3D AI avatar that provides empathetic medical information assistance. The avatar can speak responses, animate during conversations, and offers a more engaging user experience.
 
 ![Dr. Ava Medical Assistant](https://img.shields.io/badge/Dr.%20Ava-Medical%20Assistant-blue?style=for-the-badge&logo=medical&logoColor=white)
