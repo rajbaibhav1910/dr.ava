@@ -31,18 +31,6 @@ python install_requirements.py
 
 # Or install manually
 pip install langchain langchain-community langchain-huggingface faiss-cpu pypdf pyttsx3 fastapi uvicorn
-```
-
-### 2. Set Environment Variables
-```bash
-# Set your Hugging Face token
-export HF_TOKEN=your_huggingface_token_here
-```
-
-### 3. Run the Application
-```bash
-python server.py
-```
 
 ### 4. Access the Interface
 Open your browser and go to `http://localhost:8000`
@@ -81,24 +69,7 @@ The avatar is built using Three.js and includes:
 - **Animations**: Breathing, rotation, and speaking movements
 - **Materials**: Skin-tone coloring with medical theming
 
-## 🔒 Safety & Ethics
 
-Dr. Ava includes built-in safety features:
-- **Medical Disclaimers**: Always reminds users about AI limitations
-- **Professional Boundaries**: No specific diagnoses or treatments
-- **Healthcare Guidance**: Encourages consultation with medical professionals
-- **Empathetic Responses**: Compassionate and supportive communication
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-1. **Avatar not displaying**
-   - Check browser console for Three.js errors
-   - Ensure JavaScript is enabled
-   - Try refreshing the page
-
-2. **Text-to-speech not working**
    - Check if pyttsx3 is properly installed
    - Verify audio permissions in browser
    - Try the mute/unmute button
