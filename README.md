@@ -1,6 +1,5 @@
 # 🏥 Dr. Ava - AI Medical Assistant with 3D Avatar
 
-
 Dr. Ava is an advanced medical chatbot featuring a 3D AI avatar that provides empathetic medical information assistance. The avatar can speak responses, animate during conversations, and offers a more engaging user experience.
 
 ![Dr. Ava Medical Assistant](https://img.shields.io/badge/Dr.%20Ava-Medical%20Assistant-blue?style=for-the-badge&logo=medical&logoColor=white)
@@ -50,9 +49,6 @@ Dr. Ava is an advanced medical chatbot featuring a 3D AI avatar that provides em
    ```
 
 4. **Run the application**
-   ```bash
-   python server.py
-   ```
 
 5. **Access the interface**
    Open your browser and go to `http://localhost:8000`
@@ -182,4 +178,3 @@ If you have any questions or need help, please:
 **Important**: Dr. Ava is an AI assistant for educational purposes only. Always consult qualified healthcare professionals for medical decisions.
 
 ## 🌟 Star this repository if you found it helpful!
-
